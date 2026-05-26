@@ -10,6 +10,14 @@ import {
 import { sendError } from "../utils/errorResponse";
 import { validateWalletAddress } from "../middleware/validation";
 
+/**
+ * Remove CR/LF from a value before logging it, preventing log-injection /
+ * forged log entries from user-supplied input (CodeQL js/log-injection).
+ */
+function sanitizeForLog(value: string): string {
+  return String(value).replace(/[\r\n]/g, "");
+}
+
 type ExportPrismaClient = {
   userTransaction: {
     findMany(args: {
@@ -128,7 +136,7 @@ exportRouter.get(
     } catch (error) {
       console.error(
         "[export] Failed to build tax preview for address: %s",
-        encodeURIComponent(address),
+        sanitizeForLog(address),
         error,
       );
       sendError(
@@ -189,7 +197,7 @@ exportRouter.get(
       const csvStream = createCSVStream(records);
       csvStream.pipe(res);
     } catch (error) {
-      console.error("[export] Failed to export data for address: %s", encodeURIComponent(address), error);
+      console.error("[export] Failed to export data for address: %s", sanitizeForLog(address), error);
       sendError(res, 500, "EXPORT_FAILED", "Failed to generate export.");
     }
   },
